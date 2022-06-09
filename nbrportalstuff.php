@@ -4,7 +4,23 @@ require_once 'nbrportalstuff.civix.php';
 // phpcs:disable
 use CRM_Nbrportalstuff_ExtensionUtil as E;
 // phpcs:enable
+use \Symfony\Component\DependencyInjection\ContainerBuilder;
 
+/**
+ * @return \Civi\Nbrportalstuff\NbrPortalFactory
+ */
+function nbrportalstuff_get_factory(): \Civi\Nbrportalstuff\NbrPortalFactory {
+  return \Civi::service('nbrportalstuff');
+}
+
+/**
+ * Implements hook_civicrm_container()
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_container/
+ */
+function nbrportalstuff_civicrm_container(ContainerBuilder $container) {
+  $container->addCompilerPass(new Civi\Nbrportalstuff\NbrPortalContainer());
+}
 /**
  * Implements hook_civicrm_config().
  *

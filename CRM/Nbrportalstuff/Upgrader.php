@@ -17,13 +17,48 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
   }
 
   /**
+   * Upgrade 1001 - fix show portal custom field
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_1001(): bool {
+    $this->ctx->log->info('Applying update 1001 - fix show portal custom field');
+    $newName = "nvgo_show_portal";
+    try {
+      $check = \Civi\Api4\CustomField::get()
+        ->addSelect('id', 'column_name')
+        ->addWhere('custom_group_id:name', '=', CRM_Nihrbackbone_BackboneConfig::singleton()->getVolunteerGeneralObservationsCustomGroup('name'))
+        ->addWhere('name', '=', 'nbr_show_portal')
+        ->execute();
+      $customField = $check->first();
+      if ( $customField['id']) {
+        $cfUpdate = "UPDATE civicrm_custom_field SET name = %1, column_name = %1 WHERE id = %2";
+        $cfParams = [
+          1 => [$newName, "String"],
+          2 => [(int) $customField['id'], "Integer"]
+        ];
+        CRM_Core_DAO::executeQuery($cfUpdate, $cfParams);
+        if ($customField['column_name'] != $newName) {
+          CRM_Core_DAO::executeQuery("ALTER TABLE civicrm_value_nihr_volunteer_general_observations CHANGE " . $customField['column_name'] . " " .  $newName . " TINYINT(4)");
+        }
+      }
+    }
+    catch (API_Exception $ex) {
+      Civi::log()->error('het gaat fout');
+    }
+    return TRUE;
+  }
+
+
+  /**
    * Method to create show on portal custom field if required
    *
    * @return void
    */
   private function createShowOnPortal() {
     $customGroupName = "nihr_volunteer_general_observations";
-    $customFieldName = "nbr_show_portal";
+    $customFieldName = "nvgo_show_portal";
     try {
       $customFields = \Civi\Api4\CustomField::get()
         ->addSelect('*')
@@ -35,6 +70,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
         \Civi\Api4\CustomField::create()
           ->addValue('custom_group_id:name', $customGroupName)
           ->addValue('name', $customFieldName)
+          ->addValue('column_name', $customFieldName)
           ->addValue('label', 'Show on portal?')
           ->addValue('html_type', 'Radio')
           ->addValue('data_type', 'Boolean')
@@ -86,19 +122,6 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
    */
   // public function disable() {
   //   CRM_Core_DAO::executeQuery('UPDATE foo SET is_active = 0 WHERE bar = "whiz"');
-  // }
-
-  /**
-   * Example: Run a couple simple queries.
-   *
-   * @return TRUE on success
-   * @throws Exception
-   */
-  // public function upgrade_4200(): bool {
-  //   $this->ctx->log->info('Applying update 4200');
-  //   CRM_Core_DAO::executeQuery('UPDATE foo SET bar = "whiz"');
-  //   CRM_Core_DAO::executeQuery('DELETE FROM bang WHERE willy = wonka(2)');
-  //   return TRUE;
   // }
 
 

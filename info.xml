@@ -20,6 +20,9 @@
   <compatibility>
     <ver>5.0</ver>
   </compatibility>
+  <requires>
+    <ext>form-processor</ext>
+  </requires>
   <comments>Extension is being tested</comments>
   <classloader>
     <psr4 prefix="Civi\" path="Civi"/>
