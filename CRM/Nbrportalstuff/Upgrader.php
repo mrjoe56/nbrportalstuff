@@ -31,7 +31,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
   }
 
   /**
-   * Upgrade 1001 - fix show portal custom field
+   * Upgrade 1001 - fix show portal custom field and add form processor
    *
    * @return TRUE on success
    * @throws Exception
@@ -59,6 +59,14 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
       }
     }
     catch (API_Exception $ex) {
+    }
+    // add Form Processor if required
+    try {
+      civicrm_api3("FormProcessorInstance", "import");
+    }
+    catch (CiviCRM_API3_Exception $ex) {
+      Civi::log()->error(E::ts("Could not import the Form Processor in ") . __METHOD__ . E::ts(", error message: ")
+        . $ex->getMessage() . E::ts(". Please import manually in the User Interface"));
     }
     return TRUE;
   }
