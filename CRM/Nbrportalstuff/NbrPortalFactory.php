@@ -7,19 +7,18 @@ use CRM_Nbrportalstuff_ExtensionUtil as E;
  * @author Erik Hommel (CiviCooP) <erik.hommel@civicoop.org>
  * @license AGPL-3.0
  */
-namespace Civi\Nbrportalstuff;
 
-class NbrPortalFactory {
+class CRM_Nbrportalstuff_NbrPortalFactory {
 
   /**
-   * @var CRM_Nbrportalstuff_NbrPortalService
+   * @var CRM_Nbrportalstuff_NbrPortalFactory
    */
   protected static $singleton;
   private $_ngoCgName = NULL;
   private $_ngoShowPortalCfName = NULL;
 
   /**
-   * CRM_Nbrportalstuff_NbrPortalService constructor.
+   * NbrPortalFactory constructor.
    */
   public function __construct() {
     if (!self::$singleton) {
@@ -28,11 +27,11 @@ class NbrPortalFactory {
   }
 
   /**
-   * @return CRM_Nbrportalstuff_NbrPortalService
+   * @return CRM_Nbrportalstuff_NbrPortalFactory
    */
   public static function getInstance() {
     if (!self::$singleton) {
-      self::$singleton = new CRM_Nbrportalstuff_NbrPortalService();
+      self::$singleton = new CRM_Nbrportalstuff_NbrPortalFactory();
     }
     return self::$singleton;
   }

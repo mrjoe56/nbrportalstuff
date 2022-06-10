@@ -7,9 +7,9 @@ use CRM_Nbrportalstuff_ExtensionUtil as E;
 use \Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
- * @return \Civi\Nbrportalstuff\NbrPortalFactory
+ * @return \CRM_Nbrportalstuff_NbrPortalFactory
  */
-function nbrportalstuff_get_factory(): \Civi\Nbrportalstuff\NbrPortalFactory {
+function nbrportalstuff_get_factory(): \CRM_Nbrportalstuff_NbrPortalFactory {
   return \Civi::service('nbrportalstuff');
 }
 

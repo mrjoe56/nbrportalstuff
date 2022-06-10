@@ -1,0 +1,58 @@
+{
+    "name": "update_contact_data",
+    "title": "Update Contact Data",
+    "is_active": "1",
+    "output_handler": "OutputAllActionOutput",
+    "output_handler_configuration": [],
+    "enable_default_data": "0",
+    "default_data_output_configuration": [],
+    "permission": "",
+    "inputs": [
+        {
+            "title": "Contact ID",
+            "name": "contact_id",
+            "type": "Integer",
+            "is_required": "1",
+            "default_value": "",
+            "configuration": [],
+            "validators": []
+        },
+        {
+            "title": "Email",
+            "name": "email",
+            "type": "String",
+            "is_required": "0",
+            "default_value": "",
+            "configuration": [],
+            "validators": []
+        },
+        {
+            "title": "Show on portal",
+            "name": "show_on_portal",
+            "type": "Boolean",
+            "is_required": "0",
+            "default_value": "1",
+            "configuration": {
+                "return_as": "integer"
+            },
+            "validators": []
+        }
+    ],
+    "actions": [
+        {
+            "name": "update_contact_data",
+            "title": "Update Contact Data",
+            "type": "NbrContactUpdate",
+            "configuration": [],
+            "mapping": {
+                "nbr_contact_id": "input.contact_id",
+                "nbr_email": "input.email",
+                "nbr_show_portal": "input.show_on_portal"
+            },
+            "condition_configuration": "",
+            "delay_configuration": ""
+        }
+    ],
+    "default_data_inputs": [],
+    "default_data_actions": []
+}

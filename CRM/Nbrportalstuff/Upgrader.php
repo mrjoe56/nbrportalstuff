@@ -17,6 +17,20 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
   }
 
   /**
+   * Add form processor on post install
+   */
+  public function postInstall() {
+    // add Form Processor if required
+    try {
+      civicrm_api3("FormProcessorInstance", "import");
+    }
+    catch (CiviCRM_API3_Exception $ex) {
+      Civi::log()->error(E::ts("Could not import the Form Processor in ") . __METHOD__ . E::ts(", error message: ")
+        . $ex->getMessage() . E::ts(". Please import manually in the User Interface"));
+    }
+  }
+
+  /**
    * Upgrade 1001 - fix show portal custom field
    *
    * @return TRUE on success
@@ -45,7 +59,6 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
       }
     }
     catch (API_Exception $ex) {
-      Civi::log()->error('het gaat fout');
     }
     return TRUE;
   }
@@ -84,24 +97,6 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
     catch (API_Exception $ex) {
     }
   }
-
-  /**
-   * Example: Work with entities usually not available during the install step.
-   *
-   * This method can be used for any post-install tasks. For example, if a step
-   * of your installation depends on accessing an entity that is itself
-   * created during the installation (e.g., a setting or a managed entity), do
-   * so here to avoid order of operation problems.
-   */
-  // public function postInstall() {
-  //  $customFieldId = civicrm_api3('CustomField', 'getvalue', array(
-  //    'return' => array("id"),
-  //    'name' => "customFieldCreatedViaManagedHook",
-  //  ));
-  //  civicrm_api3('Setting', 'create', array(
-  //    'myWeirdFieldSetting' => array('id' => $customFieldId, 'weirdness' => 1),
-  //  ));
-  // }
 
   /**
    * Example: Run an external SQL script when the module is uninstalled.
