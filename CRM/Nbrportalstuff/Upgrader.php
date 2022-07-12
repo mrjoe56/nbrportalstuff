@@ -4,7 +4,8 @@ use CRM_Nbrportalstuff_ExtensionUtil as E;
 /**
  * Collection of upgrade steps.
  */
-class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
+class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base
+{
 
   // By convention, functions that look like "function upgrade_NNNN()" are
   // upgrade tasks. They are executed in order (like Drupal's hook_update_N).
@@ -15,6 +16,11 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
   public function install() {
     $this->createWithdrawFromPortal();
     $this->createDoNotUploadToPortal();
+    // set all existing records to value ""
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nbr_study_data SET nsd_prevent_upload_portal = %1", [1 => ["", "String"]]);
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nihr_volunteer_general_observations SET nvgo_withdraw_portal = %1", [1 => ["", "String"]]);
+    // insert for volunteers that do not have a record yet
+    $this->insertDefaultWithdrawnIfNotExists();
   }
 
   /**
@@ -24,8 +30,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
     // add Form Processor if required
     try {
       civicrm_api3("FormProcessorInstance", "import");
-    }
-    catch (CiviCRM_API3_Exception $ex) {
+    } catch (CiviCRM_API3_Exception $ex) {
       Civi::log()->error(E::ts("Could not import the Form Processor in ") . __METHOD__ . E::ts(", error message: ")
         . $ex->getMessage() . E::ts(". Please import manually in the User Interface"));
     }
@@ -47,25 +52,23 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
         ->addWhere('name', '=', 'nbr_show_portal')
         ->execute();
       $customField = $check->first();
-      if ( $customField['id']) {
+      if ($customField['id']) {
         $cfUpdate = "UPDATE civicrm_custom_field SET name = %1, column_name = %1 WHERE id = %2";
         $cfParams = [
           1 => [$newName, "String"],
-          2 => [(int) $customField['id'], "Integer"]
+          2 => [(int)$customField['id'], "Integer"]
         ];
         CRM_Core_DAO::executeQuery($cfUpdate, $cfParams);
         if ($customField['column_name'] != $newName) {
-          CRM_Core_DAO::executeQuery("ALTER TABLE civicrm_value_nihr_volunteer_general_observations CHANGE " . $customField['column_name'] . " " .  $newName . " TINYINT(4)");
+          CRM_Core_DAO::executeQuery("ALTER TABLE civicrm_value_nihr_volunteer_general_observations CHANGE " . $customField['column_name'] . " " . $newName . " TINYINT(4)");
         }
       }
-    }
-    catch (API_Exception $ex) {
+    } catch (API_Exception $ex) {
     }
     // add Form Processor if required
     try {
       civicrm_api3("FormProcessorInstance", "import");
-    }
-    catch (CiviCRM_API3_Exception $ex) {
+    } catch (CiviCRM_API3_Exception $ex) {
       Civi::log()->error(E::ts("Could not import the Form Processor in ") . __METHOD__ . E::ts(", error message: ")
         . $ex->getMessage() . E::ts(". Please import manually in the User Interface"));
     }
@@ -92,8 +95,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
           ->addWhere('id', '=', $customField['id'])
           ->execute();
       }
-    }
-    catch (API_Exception $ex) {
+    } catch (API_Exception $ex) {
     }
     $this->createWithdrawFromPortal();
     return TRUE;
@@ -112,18 +114,33 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
   }
 
   /**
-   * Upgrade 1004 - set withdrawn option value to 1
+   * Upgrade 1004 - clean up for portal flags
    *
    * @return TRUE on success
    * @throws Exception
    */
   public function upgrade_1004(): bool {
-    $this->ctx->log->info('Applying update 1004 - set withdrawn option value to 1');
-    $query = "UPDATE civicrm_option_value SET value = %1 WHERE name = %2";
+    $this->ctx->log->info('Applying update 1004 - clean up for portal flags');
+    // make sure both custom field and column for show_portal are removed
+    $this->removeShowPortalField();
+    // make sure option values are set to "1"
+    $query = "UPDATE civicrm_option_value SET value = %1 WHERE name = %2 OR name = %3";
     CRM_Core_DAO::executeQuery($query, [
       1 => ["1", "String"],
-      2 => ["nbr_portal_withdrawn", "String"]
+      2 => ["nbr_portal_withdrawn", "String"],
+      3 => ["nbr_prevent_upload", "String"]
     ]);
+    // make sure default_value for custom fields are set to NULL
+    $query = "UPDATE civicrm_custom_field SET default_value = NULL WHERE name = %1 OR name = %2";
+    CRM_Core_DAO::executeQuery($query, [
+      1 => ["nsd_prevent_upload_portal", "String"],
+      2 => ["nvgo_withdraw_portal", "String"]
+    ]);
+    // set all existing records to value ""
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nbr_study_data SET nsd_prevent_upload_portal = %1", [1 => ["", "String"]]);
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nihr_volunteer_general_observations SET nvgo_withdraw_portal = %1", [1 => ["", "String"]]);
+    // insert for volunteers that do not have a record yet
+    $this->insertDefaultWithdrawnIfNotExists();
     return TRUE;
   }
 
@@ -152,16 +169,12 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
           ->addValue('data_type', 'String')
           ->addValue('option_group_id', $this->findOrCreateWithdrawnOptionGroupId())
           ->addValue('is_active', TRUE)
-          ->addValue('default_value', TRUE)
           ->addValue('is_searchable', TRUE)
           ->addValue('in_selector', TRUE)
           ->execute();
       }
+    } catch (API_Exception $ex) {
     }
-    catch (API_Exception $ex) {
-    }
-    // make sure all values are set to 0 at start
-    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nihr_volunteer_general_observations SET nvgo_withdraw_portal = NULL");
   }
 
   /**
@@ -189,24 +202,21 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
             ->execute();
           $newGroup = $newGroups->first();
           if ($newGroup['id']) {
-            $this->createWithdrawnOptionValue((int) $newGroup['id'], $optionName);
-            return (int) $newGroup['id'];
+            $this->createWithdrawnOptionValues((int)$newGroup['id'], $optionName);
+            return (int)$newGroup['id'];
           }
-        }
-        catch (API_Exception $ex) {
+        } catch (API_Exception $ex) {
           Civi::log()->error(E::ts("Could not create option group ") . $optionName . E::ts(" in ") . __METHOD__
             . E::ts(", error message from API4 OptionGroup create: ") . $ex->getMessage());
         }
-      }
-      else {
+      } else {
         $optionGroup = $optionGroups->first();
         if ($optionGroup['id']) {
-          $this->createWithdrawnOptionValue((int) $optionGroup['id'], $optionName);
-          return (int) $optionGroup['id'];
+          $this->createWithdrawnOptionValues((int)$optionGroup['id'], $optionName);
+          return (int)$optionGroup['id'];
         }
       }
-    }
-    catch (API_Exception $ex) {
+    } catch (API_Exception $ex) {
       Civi::log()->error(E::ts("Could not get option group ") . $optionName . E::ts(" in ") . __METHOD__
         . E::ts(", error message from API4 OptionGroup get: ") . $ex->getMessage());
     }
@@ -220,7 +230,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
    * @param string $optionName
    * @return void
    */
-  private function createWithdrawnOptionValue(int $optionGroupId, string $optionName) {
+  private function createWithdrawnOptionValues(int $optionGroupId, string $optionName) {
     try {
       $optionValues = \Civi\Api4\OptionValue::get()
         ->addSelect('*')
@@ -238,8 +248,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
           ->addValue('is_reserved', TRUE)
           ->execute();
       }
-    }
-    catch (API_Exception $ex) {
+    } catch (API_Exception $ex) {
     }
   }
 
@@ -268,16 +277,12 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
           ->addValue('data_type', 'String')
           ->addValue('option_group_id', $this->findOrCreatePreventUploadOptionGroupId())
           ->addValue('is_active', TRUE)
-          ->addValue('default_value', TRUE)
           ->addValue('is_searchable', TRUE)
           ->addValue('in_selector', TRUE)
           ->execute();
       }
+    } catch (API_Exception $ex) {
     }
-    catch (API_Exception $ex) {
-    }
-    // make sure all values are set to 0 at start
-    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nbr_study_data SET nsd_prevent_upload_portal = NULL");
   }
 
 
@@ -306,24 +311,21 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
             ->execute();
           $newGroup = $newGroups->first();
           if ($newGroup['id']) {
-            $this->createPreventUploadOptionValue((int) $newGroup['id'], $optionName);
-            return (int) $newGroup['id'];
+            $this->createPreventUploadOptionValues((int)$newGroup['id'], $optionName);
+            return (int)$newGroup['id'];
           }
-        }
-        catch (API_Exception $ex) {
+        } catch (API_Exception $ex) {
           Civi::log()->error(E::ts("Could not create option group ") . $optionName . E::ts(" in ") . __METHOD__
             . E::ts(", error message from API4 OptionGroup create: ") . $ex->getMessage());
         }
-      }
-      else {
+      } else {
         $optionGroup = $optionGroups->first();
         if ($optionGroup['id']) {
-          $this->createPreventUploadOptionValue((int) $optionGroup['id'], $optionName);
-          return (int) $optionGroup['id'];
+          $this->createPreventUploadOptionValues((int)$optionGroup['id'], $optionName);
+          return (int)$optionGroup['id'];
         }
       }
-    }
-    catch (API_Exception $ex) {
+    } catch (API_Exception $ex) {
       Civi::log()->error(E::ts("Could not get option group ") . $optionName . E::ts(" in ") . __METHOD__
         . E::ts(", error message from API4 OptionGroup get: ") . $ex->getMessage());
     }
@@ -337,7 +339,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
    * @param string $optionName
    * @return void
    */
-  private function createPreventUploadOptionValue(int $optionGroupId, string $optionName) {
+  private function createPreventUploadOptionValues(int $optionGroupId, string $optionName) {
     try {
       $optionValues = \Civi\Api4\OptionValue::get()
         ->addSelect('*')
@@ -349,100 +351,60 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
         \Civi\Api4\OptionValue::create()
           ->addValue('option_group_id', $optionGroupId)
           ->addValue('label', 'Prevent upload')
-          ->addValue('value', $optionName)
+          ->addValue('value', "1")
           ->addValue('name', $optionName)
           ->addValue('is_active', TRUE)
           ->addValue('is_reserved', TRUE)
           ->execute();
       }
-    }
-    catch (API_Exception $ex) {
+    } catch (API_Exception $ex) {
     }
   }
 
   /**
-   * Example: Run an external SQL script when the module is uninstalled.
-   */
-  // public function uninstall() {
-  //  $this->executeSqlFile('sql/myuninstall.sql');
-  // }
-
-  /**
-   * Example: Run a simple query when a module is enabled.
-   */
-  // public function enable() {
-  //  CRM_Core_DAO::executeQuery('UPDATE foo SET is_active = 1 WHERE bar = "whiz"');
-  // }
-
-  /**
-   * Example: Run a simple query when a module is disabled.
-   */
-  // public function disable() {
-  //   CRM_Core_DAO::executeQuery('UPDATE foo SET is_active = 0 WHERE bar = "whiz"');
-  // }
-
-
-  /**
-   * Example: Run an external SQL script.
+   * Method to insert withdrawn with value "" for all volunteers that do not have a record yet
    *
-   * @return TRUE on success
-   * @throws Exception
+   * @return void
    */
-  // public function upgrade_4201(): bool {
-  //   $this->ctx->log->info('Applying update 4201');
-  //   // this path is relative to the extension base dir
-  //   $this->executeSqlFile('sql/upgrade_4201.sql');
-  //   return TRUE;
-  // }
-
+  private function insertDefaultWithdrawnIfNotExists() {
+    $contactQry = "SELECT id FROM civicrm_contact WHERE contact_sub_type LIKE %1";
+    $dao = CRM_Core_DAO::executeQuery($contactQry, [1 => ["%nihr_volunteer%", "String"]]);
+    while ($dao->fetch()) {
+      $checkQry = "SELECT COUNT(*) FROM civicrm_value_nihr_volunteer_general_observations WHERE entity_id = %1";
+      $count = CRM_Core_DAO::singleValueQuery($checkQry, [1 => [$dao->id, "Integer"]]);
+      if ($count == 0) {
+        $insert = "INSERT INTO civicrm_value_nihr_volunteer_general_observations (entity_id, nvgo_withdraw_portal) VALUES(%1, %2)";
+        CRM_Core_DAO::executeQuery($insert, [
+          1 => [$dao->id, "Integer"],
+          2 => ["", "String"],
+        ]);
+      }
+    }
+  }
 
   /**
-   * Example: Run a slow upgrade process by breaking it up into smaller chunk.
+   * Make sure the custom field for show portal is removed AND the column is removed from the table
    *
-   * @return TRUE on success
-   * @throws Exception
+   * @return void
    */
-  // public function upgrade_4202(): bool {
-  //   $this->ctx->log->info('Planning update 4202'); // PEAR Log interface
-
-  //   $this->addTask(E::ts('Process first step'), 'processPart1', $arg1, $arg2);
-  //   $this->addTask(E::ts('Process second step'), 'processPart2', $arg3, $arg4);
-  //   $this->addTask(E::ts('Process second step'), 'processPart3', $arg5);
-  //   return TRUE;
-  // }
-  // public function processPart1($arg1, $arg2) { sleep(10); return TRUE; }
-  // public function processPart2($arg3, $arg4) { sleep(10); return TRUE; }
-  // public function processPart3($arg5) { sleep(10); return TRUE; }
-
-  /**
-   * Example: Run an upgrade with a query that touches many (potentially
-   * millions) of records by breaking it up into smaller chunks.
-   *
-   * @return TRUE on success
-   * @throws Exception
-   */
-  // public function upgrade_4203(): bool {
-  //   $this->ctx->log->info('Planning update 4203'); // PEAR Log interface
-
-  //   $minId = CRM_Core_DAO::singleValueQuery('SELECT coalesce(min(id),0) FROM civicrm_contribution');
-  //   $maxId = CRM_Core_DAO::singleValueQuery('SELECT coalesce(max(id),0) FROM civicrm_contribution');
-  //   for ($startId = $minId; $startId <= $maxId; $startId += self::BATCH_SIZE) {
-  //     $endId = $startId + self::BATCH_SIZE - 1;
-  //     $title = E::ts('Upgrade Batch (%1 => %2)', array(
-  //       1 => $startId,
-  //       2 => $endId,
-  //     ));
-  //     $sql = '
-  //       UPDATE civicrm_contribution SET foobar = whiz(wonky()+wanker)
-  //       WHERE id BETWEEN %1 and %2
-  //     ';
-  //     $params = array(
-  //       1 => array($startId, 'Integer'),
-  //       2 => array($endId, 'Integer'),
-  //     );
-  //     $this->addTask($title, 'executeSql', $sql, $params);
-  //   }
-  //   return TRUE;
-  // }
-
+  private function removeShowPortalField() {
+    $fieldName = "nvgo_show_portal";
+    try {
+      $customFields = \Civi\Api4\CustomField::get()
+        ->addSelect('id')
+        ->addWhere('custom_group_id:name', '=', 'nihr_volunteer_general_observations')
+        ->addWhere('name', '=', $fieldName)
+        ->execute();
+      $customField = $customFields->first();
+      if ($customField['id']) {
+        \Civi\Api4\CustomField::delete()
+          ->addWhere('id', '=', $customField['id'])
+          ->execute();
+      }
+    } catch (API_Exception $ex) {
+    }
+    if (CRM_Core_BAO_SchemaHandler::checkIfFieldExists("civicrm_value_nihr_volunteer_general_observations", $fieldName)) {
+      CRM_Core_DAO::executeQuery("ALTER TABLE civicrm_value_nihr_volunteer_general_observations DROP COLUMN " . $fieldName);
+    }
+  }
 }
