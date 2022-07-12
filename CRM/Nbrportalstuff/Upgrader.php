@@ -112,6 +112,22 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
   }
 
   /**
+   * Upgrade 1004 - set withdrawn option value to 1
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_1004(): bool {
+    $this->ctx->log->info('Applying update 1004 - set withdrawn option value to 1');
+    $query = "UPDATE civicrm_option_value SET value = %1 WHERE name = %2";
+    CRM_Core_DAO::executeQuery($query, [
+      1 => ["1", "String"],
+      2 => ["nbr_prevent_upload", "String"]
+    ]);
+    return TRUE;
+  }
+
+  /**
    * Method to create withdraw from portal custom field if required
    *
    * @return void
