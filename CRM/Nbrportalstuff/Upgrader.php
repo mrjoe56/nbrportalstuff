@@ -96,6 +96,8 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
     catch (API_Exception $ex) {
     }
     $this->createWithdrawFromPortal();
+    // make sure all values are set to 0 at start
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nihr_volunteer_general_observations SET nvgo_withdraw_portal = NULL");
     return TRUE;
   }
 
@@ -258,6 +260,8 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
     }
     catch (API_Exception $ex) {
     }
+    // make sure all values are set to 0 at start
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nbr_study_data SET nsd_prevent_upload_portal = NULL");
   }
 
 
