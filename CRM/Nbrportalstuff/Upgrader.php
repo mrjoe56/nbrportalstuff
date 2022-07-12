@@ -122,7 +122,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
     $query = "UPDATE civicrm_option_value SET value = %1 WHERE name = %2";
     CRM_Core_DAO::executeQuery($query, [
       1 => ["1", "String"],
-      2 => ["nbr_prevent_upload", "String"]
+      2 => ["nbr_portal_withdrawn", "String"]
     ]);
     return TRUE;
   }
