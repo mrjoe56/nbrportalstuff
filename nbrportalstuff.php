@@ -21,6 +21,7 @@ function nbrportalstuff_get_factory(): \CRM_Nbrportalstuff_NbrPortalFactory {
 function nbrportalstuff_civicrm_container(ContainerBuilder $container) {
   $container->addCompilerPass(new Civi\Nbrportalstuff\NbrPortalContainer());
 }
+
 /**
  * Implements hook_civicrm_config().
  *

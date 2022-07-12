@@ -216,7 +216,7 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base {
         \Civi\Api4\OptionValue::create()
           ->addValue('option_group_id', $optionGroupId)
           ->addValue('label', 'Withdrawn')
-          ->addValue('value', $optionName)
+          ->addValue('value', "1")
           ->addValue('name', $optionName)
           ->addValue('is_active', TRUE)
           ->addValue('is_reserved', TRUE)
