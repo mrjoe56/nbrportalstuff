@@ -1,3 +1,6 @@
+## Version 1.3
+* set study prevent upload to portal to default value TRUE and set to TRUE for all current studies (for new ones default will be TRUE - see nihrbackbone 2.43)
+
 ## Version 1.2
 * change field on general observations for volunteer to checkbox (see https://www.wrike.com/open.htm?id=906177216)
 * add field do not upload on portal to study (see https://www.wrike.com/open.htm?id=923547349)

@@ -145,6 +145,29 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base
   }
 
   /**
+   * Upgrade 1005 - set study field prevent upload to portal default to true
+   *
+   * @return TRUE on success
+   * @throws Exception
+   */
+  public function upgrade_1005(): bool {
+    $this->ctx->log->info('Applying update 1005 - tick box by default for study - do not upload to portal');
+    try {
+      \Civi\Api4\CustomField::update()
+        ->addWhere('custom_group_id:name', '=', 'nbr_study_data')
+        ->addWhere('name', '=', 'nsd_prevent_upload_portal')
+        ->addValue('default_value', TRUE)
+        ->setLimit(1)
+        ->execute();
+    }
+    catch (API_Exception $ex) {
+      Civi::log()->debug($ex->getMessage());
+    }
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_value_nbr_study_data SET nsd_prevent_upload_portal = TRUE");
+    return TRUE;
+  }
+
+  /**
    * Method to create withdraw from portal custom field if required
    *
    * @return void
@@ -278,13 +301,13 @@ class CRM_Nbrportalstuff_Upgrader extends CRM_Nbrportalstuff_Upgrader_Base
           ->addValue('option_group_id', $this->findOrCreatePreventUploadOptionGroupId())
           ->addValue('is_active', TRUE)
           ->addValue('is_searchable', TRUE)
+          ->addValue('default_value', TRUE)
           ->addValue('in_selector', TRUE)
           ->execute();
       }
     } catch (API_Exception $ex) {
     }
   }
-
 
   /**
    * Method to get the ID of the prevent upload to portal option group or create if it did not exist
