@@ -27,6 +27,9 @@ class NbrPortalContainer implements CompilerPassInterface {
       $actionProviderDefinition = $container->getDefinition('action_provider');
       $actionProviderDefinition->addMethodCall('addAction',
         ['NbrContactUpdate', 'Civi\Nbrportalstuff\Actions\NbrContactUpdate', E::ts('Update NBR Contact Data'), []]);
+        $actionProviderDefinition->addMethodCall('addAction',
+            ['NbrCreateContact', 'Civi\Nbrportalstuff\Actions\NbrCreateContact', E::ts('Create new NBR contact'), []]);
+
     }
   }
 
