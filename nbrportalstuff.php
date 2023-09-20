@@ -9,9 +9,9 @@ use \Symfony\Component\DependencyInjection\ContainerBuilder;
 /**
  * @return \CRM_Nbrportalstuff_NbrPortalFactory
  */
-function nbrportalstuff_get_factory(): \CRM_Nbrportalstuff_NbrPortalFactory {
-  return \Civi::service('nbrportalstuff');
-}
+//function nbrportalstuff_get_factory(): \CRM_Nbrportalstuff_NbrPortalFactory {
+//  return \Civi::service('nbrportalstuff');
+//}
 
 /**
  * Implements hook_civicrm_container()
